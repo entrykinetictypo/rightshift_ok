@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Entry Shift Remap (Left to Right) v4",
+  "version": "4.0.0",
+  "description": "Adds a separate virtual Right Shift key for Entry blocks, activated by Left or Right Shift, while preserving native Shift.",
+  "content_scripts": [
+    {
+      "matches": ["https://playentry.org/*", "https://*.playentry.org/*"],
+      "js": ["remap.js"],
+      "run_at": "document_start",
+      "all_frames": true,
+      "match_about_blank": true,
+      "world": "MAIN"
+    }
+  ]
+}
