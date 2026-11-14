@@ -1,4 +1,4 @@
-# Entry Shift & Ctrl Both Sides — v4.2.0
+# Entry Shift & Ctrl Both Sides — v4.2.1
 
 This extension fixes Entry's **existing** keyboard blocks. No additional key choices are added.
 
@@ -6,6 +6,18 @@ This extension fixes Entry's **existing** keyboard blocks. No additional key cho
 - The default **[Ctrl key pressed?]** and **[when Ctrl pressed]** blocks (keycode 17) recognize **Left Ctrl and Right Ctrl**.
 - Holding both keys and releasing only one still counts as pressed until the other is released.
 - No operating-system remap, synthetic DOM keyboard event, blocked keys, or browser shortcut override.
+
+## Editor URLs
+
+Works on Entry pages including URLs beginning with:
+
+- https://playentry.org/ws
+- https://playentry.org/ws/...
+- https://playentry.org/project/...
+
+The manifest's \`https://playentry.org/*\` wildcard already includes \`/ws\`. Version 4.2.1 also enables \`match_origin_as_fallback\` for related \`about:\`, \`data:\`, and \`blob:\` editor frames. The extension remains limited to Entry origins and eligible related frames. The same original Shift (16) / Ctrl (17) dropdown choices are used.
+
+Note: The embedded editor's actual behavior cannot be confirmed without testing the page in Chrome or Edge. Use F12 > Console to check \`window.__entryModifierBothSides.status()\` in the correct frame.
 
 ## Installation
 
