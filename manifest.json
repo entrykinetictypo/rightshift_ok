@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Entry Shift & Ctrl Both Sides",
-  "version": "4.2.0",
-  "description": "Makes Entry's existing Shift and Ctrl blocks recognize both left and right keys. No extra virtual key choices.",
+  "version": "4.2.1",
+  "description": "Makes existing Entry Shift/Ctrl blocks recognize either side, including /ws editors and eligible embedded frames.",
   "content_scripts": [
     {
       "matches": [
@@ -15,7 +15,8 @@
       "run_at": "document_start",
       "all_frames": true,
       "match_about_blank": true,
-      "world": "MAIN"
+      "world": "MAIN",
+      "match_origin_as_fallback": true
     }
   ],
   "icons": {
