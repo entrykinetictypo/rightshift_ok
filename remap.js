@@ -1,4 +1,4 @@
-/* Entry Both-Sides Shift/Ctrl v4.2.0
+/* Entry Both-Sides Shift/Ctrl v4.2.1
  * Keep the built-in Entry Shift (16) and Ctrl (17) blocks.
  * Make each block respond to BOTH left and right physical modifier keys.
  * Do not add virtual keys, change native KeyboardEvents or block dropdowns.
@@ -229,12 +229,15 @@
   }
 
   const diagnostic = {
-    version: '4.2.0',
+    version: '4.2.1',
     status() {
       const E = getEntry();
       const boolOptions = E?.block?.is_press_some_key?.params?.[0]?.options;
       const eventOptions = E?.block?.when_some_key_pressed?.params?.[1]?.options;
       return {
+        pageUrl: window.location.href,
+        wsRoute: window.location.pathname.startsWith('/ws'),
+        inFrame: window !== window.top,
         entryLoaded: !!E,
         engineRunning: E?.engine?.isState?.('run') ?? null,
         leftShiftHeld: held.shift.left,
@@ -261,5 +264,5 @@
   installPatches();
   const poll = setInterval(installPatches, 250);
   window.addEventListener('pagehide', () => clearInterval(poll), { once: true });
-  console.info('[Entry both-sides v4.2] loaded; __entryModifierBothSides.status()');
+  console.info('[Entry both-sides v4.2.1] loaded; __entryModifierBothSides.status()');
 })();
