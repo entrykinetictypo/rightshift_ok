@@ -1,29 +1,27 @@
-Entry Modifier Remap v4.1.0
+# Entry Shift & Ctrl Both Sides — v4.2.0
 
-Purpose:
-- Preserve the regular Entry Shift (16) and Ctrl (17) keys.
-- Add "Right Shift (virtual)" (161) to Entry keyboard blocks.
-  Both physical Left Shift and Right Shift activate this virtual key.
-- Add "Right Ctrl (virtual)" (163) to Entry keyboard blocks.
-  Both physical Left Ctrl and Right Ctrl activate this virtual key.
-- Support "when key pressed" and "is key pressed?" blocks.
-- Do not remap operating-system keys or prevent normal keyboard shortcuts.
+This extension fixes Entry's **existing** keyboard blocks. No additional key choices are added.
 
-Installation:
-1. Disable/remove old versions of this extension.
-2. Load unpacked at chrome://extensions or edge://extensions.
-3. Reload playentry.org.
-4. Choose "Right Shift (virtual)" or "Right Ctrl (virtual)" in the key menu.
-   The menu can also pick a virtual key when you press its physical modifier.
-5. Run your project and test the desired key.
+- The default **[Shift key pressed?]** and **[when Shift pressed]** blocks (keycode 16) recognize **Left Shift and Right Shift**.
+- The default **[Ctrl key pressed?]** and **[when Ctrl pressed]** blocks (keycode 17) recognize **Left Ctrl and Right Ctrl**.
+- Holding both keys and releasing only one still counts as pressed until the other is released.
+- No operating-system remap, synthetic DOM keyboard event, blocked keys, or browser shortcut override.
 
-Diagnostics (F12 > Console):
-window.__entryShiftRemapV4.status()
-window.__entryShiftRemapV4.testVirtual('shift')
-window.__entryShiftRemapV4.testVirtual('ctrl')
+## Installation
 
-Important:
-- Only Entry block behavior is affected, not Windows/macOS keyboard input.
-- The virtual 161 and 163 values are Entry-only identifiers, not native keycodes.
-- Shift and Ctrl combinations (such as Ctrl+C) may still trigger browser shortcuts.
-- Avoid enabling multiple versions of this extension simultaneously.
+1. Remove / disable any older version of this extension.
+2. Download or clone the repository and use **Load unpacked** at chrome://extensions (or edge://extensions).
+3. Reload the playentry.org project page.
+4. Use Entry's **original** Shift and Ctrl options. Do **not** select virtual 161/163 keys: those were removed.
+5. Start the project and test both sides of each modifier.
+
+## Diagnostics
+
+Open F12 → Console on the Entry project page:
+
+    window.__entryModifierBothSides.status()
+
+Check the booleans \`booleanBlockPatched\`, \`keyMapperPatched\`, \`listenerPatched\`.
+While holding Shift/Ctrl, check \`shiftPressed\`/\`ctrlPressed\` or \`rightShiftHeld\`/\`rightCtrlHeld\`.
+
+The extension only changes Entry's internal block handling. Behavior in other sites and apps is unchanged. Browser shortcuts involving Ctrl can still run normally.
