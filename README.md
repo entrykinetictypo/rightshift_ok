@@ -1,28 +1,29 @@
-Entry Shift Remap v4.0.0
+Entry Modifier Remap v4.1.0
 
 Purpose:
-- Keep the regular Entry Shift key (code 16) unchanged.
-- Add a separate "Right Shift (virtual)" key (value 161) to Entry blocks.
-- Both physical LEFT Shift and RIGHT Shift activate the virtual key.
-- This is a virtual key for Entry blocks, not an OS-level keyboard remap.
+- Preserve the regular Entry Shift (16) and Ctrl (17) keys.
+- Add "Right Shift (virtual)" (161) to Entry keyboard blocks.
+  Both physical Left Shift and Right Shift activate this virtual key.
+- Add "Right Ctrl (virtual)" (163) to Entry keyboard blocks.
+  Both physical Left Ctrl and Right Ctrl activate this virtual key.
+- Support "when key pressed" and "is key pressed?" blocks.
+- Do not remap operating-system keys or prevent normal keyboard shortcuts.
 
 Installation:
-1. Disable/remove previous Shift remap extensions v1, v2, and v3.
-2. Unzip this archive to a local folder.
-3. Open chrome://extensions or edge://extensions.
-4. Enable Developer Mode and select "Load unpacked".
-5. Select the entry-shift-remap-v4 folder.
-6. Reload the playentry.org page.
-7. In an Entry keyboard block, choose "Right Shift (virtual)".
-   You can also open the keyboard dropdown then press LEFT Shift.
-8. Run your project, then press LEFT Shift to test.
+1. Disable/remove old versions of this extension.
+2. Load unpacked at chrome://extensions or edge://extensions.
+3. Reload playentry.org.
+4. Choose "Right Shift (virtual)" or "Right Ctrl (virtual)" in the key menu.
+   The menu can also pick a virtual key when you press its physical modifier.
+5. Run your project and test the desired key.
 
-Diagnostics (F12 -> Console):
+Diagnostics (F12 > Console):
 window.__entryShiftRemapV4.status()
-While holding Shift, run status() in the console to check whether
-rightVirtualPressed is true; alternatively check captured / lastKey.
+window.__entryShiftRemapV4.testVirtual('shift')
+window.__entryShiftRemapV4.testVirtual('ctrl')
 
-Reminder:
-- Browser-native event.code is not changed, and other programs will not
-  see a physical right Shift. This only affects playentry.org's Entry blocks.
-- Prior versions of this extension must not run alongside this version.
+Important:
+- Only Entry block behavior is affected, not Windows/macOS keyboard input.
+- The virtual 161 and 163 values are Entry-only identifiers, not native keycodes.
+- Shift and Ctrl combinations (such as Ctrl+C) may still trigger browser shortcuts.
+- Avoid enabling multiple versions of this extension simultaneously.
