@@ -1,15 +1,20 @@
-/* Entry Shift Remap v4 - for playentry.org only.
- * Left Shift -> virtual Right Shift (161), and real Right Shift -> 161 too.
- * Standard Shift (16) stays unchanged; no native event cancellation or
- * KeyboardEvent prototype overrides. 161 is an Entry-only virtual value.
+/* Entry modifier remap v4.1 - for playentry.org only.
+ * Both physical Shift keys activate virtual Right Shift (161).
+ * Both physical Ctrl keys activate virtual Right Ctrl (163).
+ * Native Shift (16) and Ctrl (17) remain unchanged.
+ * These are Entry-only virtual key values, not operating-system remaps.
  */
 (() => {
   'use strict';
   const NAME = '__entryShiftRemapV4';
   if (window[NAME]) return;
 
-  const VIRTUAL_RIGHT = 161;
-  const held = { left: false, right: false };
+  const VIRTUAL = { shift: 161, ctrl: 163 };
+  const LABEL = { shift: 'Right Shift (virtual)', ctrl: 'Right Ctrl (virtual)' };
+  const held = {
+    shift: { left: false, right: false },
+    ctrl: { left: false, right: false }
+  };
   const seenKeydown = new WeakSet();
   const stats = { captured: 0, emitted: 0, failures: 0, lastKey: '-', lastError: null };
   const originals = new WeakMap();
@@ -17,15 +22,22 @@
 
   function entry() { return window.Entry || null; }
 
-  function physicalSide(event) {
+  function physicalModifier(event) {
     const e = event && (event.originalEvent || event);
     if (!e) return null;
-    if (e.code === 'ShiftLeft') return 'left';
-    if (e.code === 'ShiftRight') return 'right';
-    if (e.key !== 'Shift' && e.keyCode !== 16 && e.which !== 16) return null;
-    if (e.location === 1) return 'left';
-    if (e.location === 2) return 'right';
-    return null;
+    let kind;
+    if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') kind = 'shift';
+    else if (e.code === 'ControlLeft' || e.code === 'ControlRight') kind = 'ctrl';
+    else if (e.key === 'Shift' || e.keyCode === 16 || e.which === 16) kind = 'shift';
+    else if (e.key === 'Control' || e.key === 'Ctrl' ||
+             e.keyCode === 17 || e.which === 17) kind = 'ctrl';
+    else return null;
+    const side = e.code?.endsWith('Left') ? 'left'
+      : e.code?.endsWith('Right') ? 'right'
+      : e.location === 1 ? 'left'
+      : e.location === 2 ? 'right'
+      : null;
+    return side ? { kind, side } : null;
   }
 
   function isTextInput(event) {
@@ -41,17 +53,20 @@
   function setVirtualState() {
     const keys = entry()?.pressedKeys;
     if (!Array.isArray(keys)) return;
-    const pressed = held.left || held.right;
-    if (pressed) {
-      if (!keys.includes(VIRTUAL_RIGHT)) keys.push(VIRTUAL_RIGHT);
-    } else {
-      for (let i = keys.length - 1; i >= 0; i--) {
-        if (keys[i] === VIRTUAL_RIGHT) keys.splice(i, 1);
+    for (const kind of ['shift', 'ctrl']) {
+      const code = VIRTUAL[kind];
+      const pressed = held[kind].left || held[kind].right;
+      if (pressed) {
+        if (!keys.includes(code)) keys.push(code);
+      } else {
+        for (let i = keys.length - 1; i >= 0; i--) {
+          if (keys[i] === code) keys.splice(i, 1);
+        }
       }
     }
   }
 
-  function raiseVirtualRight() {
+  function raiseVirtualRight(kind) {
     const E = entry();
     try {
       if (!E?.engine?.isState?.('run')) return;
@@ -61,49 +76,51 @@
         stats.lastError = 'Engine keyPress API unavailable';
         return;
       }
-      map.call(E.container, raise, ['keyPress', VIRTUAL_RIGHT]);
+      map.call(E.container, raise, ['keyPress', VIRTUAL[kind]]);
       stats.emitted++;
     } catch (error) {
       stats.failures++;
       stats.lastError = String(error);
-      console.warn('[Entry Shift v4] Key event dispatch failed:', error);
+      console.warn('[Entry modifier remap] Key event dispatch failed:', error);
     }
   }
 
   function handleDown(event) {
-    const side = physicalSide(event);
-    if (!side) return;
+    const key = physicalModifier(event);
+    if (!key) return;
+    const { kind, side } = key;
     const raw = event.originalEvent || event;
-    held[side] = true;
+    held[kind][side] = true;
     setVirtualState();
     if (raw && typeof raw === 'object') {
       if (seenKeydown.has(raw)) return;
       seenKeydown.add(raw);
     }
     stats.captured++;
-    stats.lastKey = `${side} down`;
-    const inInput = isTextInput(event);
-    // Entry's real keyPress listeners have already processed Shift (16) by
-    // the time this microtask executes. Dispatch 161 independently.
-    if (!inInput) {
+    stats.lastKey = `${kind} ${side} down`;
+    // Normal Shift (16) and Ctrl (17) processing is left intact.
+    // Dispatch the separate virtual event after the native listeners.
+    if (!isTextInput(event)) {
       queueMicrotask(() => {
         setVirtualState();
-        raiseVirtualRight();
+        raiseVirtualRight(kind);
       });
     }
   }
 
   function handleUp(event) {
-    const side = physicalSide(event);
-    if (!side) return;
-    held[side] = false;
-    stats.lastKey = `${side} up`;
+    const key = physicalModifier(event);
+    if (!key) return;
+    held[key.kind][key.side] = false;
+    stats.lastKey = `${key.kind} ${key.side} up`;
     setVirtualState();
   }
 
   function releaseAll() {
-    held.left = false;
-    held.right = false;
+    for (const kind of ['shift', 'ctrl']) {
+      held[kind].left = false;
+      held[kind].right = false;
+    }
     setVirtualState();
   }
 
@@ -116,29 +133,35 @@
     if (document.hidden) releaseAll();
   });
 
-  function addRightShiftOption(options) {
-    if (!Array.isArray(options) || options.some(x => String(x?.[1]) === '161')) return;
-    const idx = options.findIndex(x => String(x?.[1]) === '16');
-    options.splice(idx >= 0 ? idx + 1 : 0, 0, ['Right Shift (virtual)', '161']);
+  function addVirtualOption(options, kind, nativeCode) {
+    if (!Array.isArray(options) || options.some(x => String(x?.[1]) === String(VIRTUAL[kind]))) return;
+    const idx = options.findIndex(x => String(x?.[1]) === String(nativeCode));
+    options.splice(idx >= 0 ? idx + 1 : options.length, 0,
+      [LABEL[kind], String(VIRTUAL[kind])]);
   }
 
   function installPatches() {
     const E = entry();
     if (!E || !E.Utils) return;
     try {
-      // Do not change Entry.Utils.inputToKeycode or native key code 16.
+      // Do not change Entry.Utils.inputToKeycode or native key codes.
       const boolBlock = E.block?.is_press_some_key;
       const keyEventBlock = E.block?.when_some_key_pressed;
-      addRightShiftOption(boolBlock?.params?.[0]?.options);
-      addRightShiftOption(keyEventBlock?.params?.[1]?.options);
+      for (const options of [boolBlock?.params?.[0]?.options, keyEventBlock?.params?.[1]?.options]) {
+        addVirtualOption(options, 'shift', 16);
+        addVirtualOption(options, 'ctrl', 17);
+      }
 
       if (boolBlock && isFunction(boolBlock.func) && !boolBlock.func.__entryShiftV4) {
         const old = boolBlock.func;
         const wrapper = function(sprite, script) {
           try {
-            if (Number(script.getField('VALUE', script)) === VIRTUAL_RIGHT) {
-              return held.left || held.right ||
-                (Array.isArray(E.pressedKeys) && E.pressedKeys.includes(VIRTUAL_RIGHT));
+            const value = Number(script.getField('VALUE', script));
+            const kind = value === VIRTUAL.shift ? 'shift'
+              : value === VIRTUAL.ctrl ? 'ctrl' : null;
+            if (kind) {
+              return held[kind].left || held[kind].right ||
+                (Array.isArray(E.pressedKeys) && E.pressedKeys.includes(VIRTUAL[kind]));
             }
           } catch (_) {}
           return old.apply(this, arguments);
@@ -157,10 +180,11 @@
           if (isFunction(this.keyboardControl) && !this.keyboardControl.__entryShiftV4) {
             const oldControl = this.keyboardControl;
             const wrappedControl = (e) => {
-              if (physicalSide(e) && isFunction(this.applyValue)) {
+              const modifier = physicalModifier(e);
+              if (modifier && isFunction(this.applyValue)) {
                 e?.stopPropagation?.();
                 e?.preventDefault?.();
-                this.applyValue(String(VIRTUAL_RIGHT), false, true);
+                this.applyValue(String(VIRTUAL[modifier.kind]), false, true);
                 return;
               }
               return oldControl.call(this, e);
@@ -178,7 +202,10 @@
         const old = E.getKeyCodeMap;
         const wrapper = function(...args) {
           const map = old.apply(this, args);
-          if (map && typeof map === 'object') map[VIRTUAL_RIGHT] = 'Right Shift (virtual)';
+          if (map && typeof map === 'object') {
+            map[VIRTUAL.shift] = LABEL.shift;
+            map[VIRTUAL.ctrl] = LABEL.ctrl;
+          }
           return map;
         };
         Object.defineProperty(wrapper, '__entryShiftV4', { value: true });
@@ -194,39 +221,51 @@
   }
 
   const diagnostic = {
-    version: '4.0.0',
+    version: '4.1.0',
     status() {
       const E = entry();
+      const boolOptions = E?.block?.is_press_some_key?.params?.[0]?.options;
+      const eventOptions = E?.block?.when_some_key_pressed?.params?.[1]?.options;
       return {
         entryLoaded: !!E,
         engineRunning: E?.engine?.isState?.('run') ?? null,
         nativeShiftLeftCode: E?.KeyboardCode?.codeToKeyCode?.ShiftLeft ?? null,
         nativeShiftRightCode: E?.KeyboardCode?.codeToKeyCode?.ShiftRight ?? null,
-        leftHeld: held.left,
-        rightHeld: held.right,
-        rightVirtualPressed: E?.pressedKeys?.includes?.(VIRTUAL_RIGHT) ?? false,
+        nativeCtrlLeftCode: E?.KeyboardCode?.codeToKeyCode?.ControlLeft ?? null,
+        nativeCtrlRightCode: E?.KeyboardCode?.codeToKeyCode?.ControlRight ?? null,
+        leftHeld: held.shift.left,
+        rightHeld: held.shift.right,
+        leftCtrlHeld: held.ctrl.left,
+        rightCtrlHeld: held.ctrl.right,
+        rightVirtualPressed: E?.pressedKeys?.includes?.(VIRTUAL.shift) ?? false,
+        rightCtrlVirtualPressed: E?.pressedKeys?.includes?.(VIRTUAL.ctrl) ?? false,
         normalShiftPressed: E?.pressedKeys?.includes?.(16) ?? false,
-        rightBlockOption: !!E?.block?.is_press_some_key?.params?.[0]?.options?.some?.(x => String(x?.[1]) === '161'),
-        eventBlockOption: !!E?.block?.when_some_key_pressed?.params?.[1]?.options?.some?.(x => String(x?.[1]) === '161'),
+        normalCtrlPressed: E?.pressedKeys?.includes?.(17) ?? false,
+        rightBlockOption: !!boolOptions?.some?.(x => String(x?.[1]) === '161'),
+        eventBlockOption: !!eventOptions?.some?.(x => String(x?.[1]) === '161'),
+        rightCtrlBlockOption: !!boolOptions?.some?.(x => String(x?.[1]) === '163'),
+        rightCtrlEventBlockOption: !!eventOptions?.some?.(x => String(x?.[1]) === '163'),
         booleanBlockPatched: !!E?.block?.is_press_some_key?.func?.__entryShiftV4,
         keyboardFieldPatched: !!E?.FieldKeyboard?.prototype?.renderOptions?.__entryShiftV4,
         ...stats
       };
     },
-    testVirtual() {
+    testVirtual(kind = 'shift') {
+      if (kind !== 'shift' && kind !== 'ctrl') return { error: 'Expected shift or ctrl' };
       const E = entry();
-      const wasPressed = held.left;
-      held.left = true;
+      const wasPressed = held[kind].left;
+      held[kind].left = true;
       setVirtualState();
-      const result = E?.pressedKeys?.includes?.(VIRTUAL_RIGHT) ?? false;
-      held.left = wasPressed;
+      const result = E?.pressedKeys?.includes?.(VIRTUAL[kind]) ?? false;
+      held[kind].left = wasPressed;
       setVirtualState();
-      return { keyStateWorking: result, ...this.status() };
+      return { keyStateWorking: result, kind, ...this.status() };
     }
   };
+
   Object.defineProperty(window, NAME, { value: diagnostic, configurable: false });
   installPatches();
   const poll = setInterval(installPatches, 250);
   window.addEventListener('pagehide', () => clearInterval(poll), { once: true });
-  console.info('[Entry Shift v4] loaded; check __entryShiftRemapV4.status()');
+  console.info('[Entry modifier remap v4.1] loaded; check __entryShiftRemapV4.status()');
 })();
