@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Entry Shift Remap (Left to Right) v4",
-  "version": "4.0.0",
-  "description": "Adds a separate virtual Right Shift key for Entry blocks, activated by Left or Right Shift, while preserving native Shift.",
+  "name": "Entry Right Shift + Right Ctrl (virtual)",
+  "version": "4.1.0",
+  "description": "Adds virtual Right Shift (161) and Right Ctrl (163) for Entry blocks without changing normal Shift/Ctrl behavior.",
   "content_scripts": [
     {
       "matches": [
