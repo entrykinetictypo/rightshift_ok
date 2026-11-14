@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Entry Right Shift + Right Ctrl (virtual)",
-  "version": "4.1.0",
-  "description": "Adds virtual Right Shift (161) and Right Ctrl (163) for Entry blocks without changing normal Shift/Ctrl behavior.",
+  "name": "Entry Shift & Ctrl Both Sides",
+  "version": "4.2.0",
+  "description": "Makes Entry's existing Shift and Ctrl blocks recognize both left and right keys. No extra virtual key choices.",
   "content_scripts": [
     {
       "matches": [
